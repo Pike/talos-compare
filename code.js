@@ -6,6 +6,7 @@ let signatures, resultsets, Results = {}, revisions, res_ids_2_rev = {};
 
 function onLoad() {
     revisions = new URL(document.location).searchParams.getAll('revision');
+    showRevisions();
     let loading = [];
     let signatures_url = new URL(Treeherder + tree + '/performance/signatures/');
     signatures_url.searchParams.set('framework', 1);
@@ -112,18 +113,39 @@ function renderResults() {
             }
             row.insertAdjacentHTML('beforeend', `<td>${platform}</td>`);
             row.insertAdjacentHTML('beforeend', `<td>${domain[0]}</td>`);
-            var data_cell = document.createElement('td');
-            d3.select(data_cell)
-                .selectAll('span')
+            row.insertAdjacentHTML('beforeend', '<td><svg></svg></td>');
+            let y_scale = d3.scaleOrdinal(
+                revisions.map((rev, i) => i*10 + 5));
+            y_scale.domain(tested_revisions);
+            let x_scale = d3.scaleLinear();
+            x_scale.range([5, 795]);
+            x_scale.domain(domain);
+            d3.select(row).select('svg')
+                .attr('width', 800)
+                .attr('height', tested_revisions.length * 10)
+                .selectAll('circle')
                 .data(results)
                 .enter()
-                .append('span')
-                .style('color', result => '#' + result.revision.slice(6))
-                .text(result => result.value + ' ');
-            row.appendChild(data_cell);
+                .append('circle')
+                .attr('cx', result => x_scale(result.value))
+                .attr('cy', result => y_scale(result.revision))
+                .attr('r', 5)
+                .style('fill', result => '#' + result.revision.slice(6))
+                    .append('title')
+                    .text(result => Number(result.value).toFixed(1));
             row.insertAdjacentHTML('beforeend', `<td>${domain[1]}</td>`);
             body.appendChild(row);
         });
+    });
+}
+
+function showRevisions() {
+    let container = document.getElementById('revs');
+    revisions.forEach(function(rev) {
+        let row = document.createElement('tr');
+        row.insertAdjacentHTML('beforeend', `<td>${rev}</td>`);
+        row.insertAdjacentHTML('beforeend', `<td class="color" style="background-color:#${rev.slice(6)};"></td>`);
+        container.appendChild(row);
     });
 }
 
