@@ -1,5 +1,6 @@
 /* global URL, fetch, d3 */
 const Treeherder = 'https://treeherder.mozilla.org/api/project/';
+const HG='https://hg.mozilla.org/'
 const tree = 'try';
 
 let signatures, resultsets, Results = {}, revisions, res_ids_2_rev = {};
@@ -129,7 +130,7 @@ function renderResults() {
                 .append('circle')
                 .attr('cx', result => x_scale(result.value))
                 .attr('cy', result => y_scale(result.revision))
-                .attr('r', 5)
+                .attr('r', 5 - 1)
                 .style('fill', result => '#' + result.revision.slice(6))
                     .append('title')
                     .text(result => Number(result.value).toFixed(1));
@@ -146,7 +147,26 @@ function showRevisions() {
         row.insertAdjacentHTML('beforeend', `<td>${rev}</td>`);
         row.insertAdjacentHTML('beforeend', `<td class="color" style="background-color:#${rev.slice(6)};"></td>`);
         container.appendChild(row);
+        getRevisionDesc(rev, row);
     });
+}
+
+function getRevisionDesc(rev, row) {
+    function getNext(_rev) {
+        fetch(`${HG}${tree}/json-rev/${_rev}`)
+            .then(response => response.json())
+            .then(function(details) {
+                if (details.desc.indexOf('try: ') < 0) {
+                    let summary = details.desc.split('\n')[0];
+                    row.insertAdjacentHTML('beforeend',
+                        `<td title="${details.desc}">${summary}</td>`);
+                }
+                else {
+                    getNext(details.parents[0]);
+                }
+            });
+    }
+    getNext(rev);
 }
 
 onLoad();
