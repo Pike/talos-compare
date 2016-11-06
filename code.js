@@ -1,4 +1,4 @@
-/* global URL, fetch */
+/* global URL, fetch, d3 */
 const Treeherder = 'https://treeherder.mozilla.org/api/project/';
 const tree = 'try';
 
@@ -113,10 +113,13 @@ function renderResults() {
             row.insertAdjacentHTML('beforeend', `<td>${platform}</td>`);
             row.insertAdjacentHTML('beforeend', `<td>${domain[0]}</td>`);
             var data_cell = document.createElement('td');
-            results.forEach(function(result) {
-                data_cell.insertAdjacentHTML('beforeend',
-                    `<span style="color: #${result.revision.slice(6)};">${result.value}</span> `);
-            });
+            d3.select(data_cell)
+                .selectAll('span')
+                .data(results)
+                .enter()
+                .append('span')
+                .style('color', result => '#' + result.revision.slice(6))
+                .text(result => result.value + ' ');
             row.appendChild(data_cell);
             row.insertAdjacentHTML('beforeend', `<td>${domain[1]}</td>`);
             body.appendChild(row);
