@@ -55,7 +55,6 @@ function loadResults(responses) {
             }));
     }
     Promise.all(loading).then(renderResults);
-    console.log('I think i am done');
 }
 
 function renderResults() {
@@ -144,7 +143,7 @@ function showRevisions() {
     let container = document.getElementById('revs');
     revisions.forEach(function(rev) {
         let row = document.createElement('tr');
-        row.insertAdjacentHTML('beforeend', `<td>${rev}</td>`);
+        row.insertAdjacentHTML('beforeend', `<td><a href="${HG}${tree}/rev/${rev}">${rev}</a></td>`);
         row.insertAdjacentHTML('beforeend', `<td class="color" style="background-color:#${rev.slice(6)};"></td>`);
         container.appendChild(row);
         getRevisionDesc(rev, row);
