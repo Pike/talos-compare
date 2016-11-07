@@ -33,7 +33,6 @@ function loadResults(responses) {
             res_ids_2_rev[r.id] = rs.meta.revision;
         });
     });
-    console.log(resultset_ids);
     let sigs = Object.keys(signatures);
     let loading = [];
     while (sigs.length) {
@@ -54,7 +53,25 @@ function loadResults(responses) {
                 });
             }));
     }
-    Promise.all(loading).then(renderResults);
+    Promise.all(loading).then(collectPlatforms);
+}
+
+function collectPlatforms() {
+    let found_sigs = Object.keys(Results);
+    let platforms = new Set(found_sigs.map(function(sig) {
+        return signatures[sig].machine_platform;
+    }));
+    platforms = Array.from(platforms);
+    let container = document.getElementById('platforms');
+    container.innerHTML = '';
+    platforms.forEach(function(platform) {
+        let row = document.createElement('tr');
+        row.innerHTML = `<td><input data-platform="${platform}" type="checkbox" checked></tr>`;
+        row.insertAdjacentHTML('beforeend', `<td>${platform}</td>`);
+        row.querySelector('input').onchange = renderResults;
+        container.appendChild(row);
+    });
+    renderResults();
 }
 
 function renderResults() {
@@ -63,8 +80,17 @@ function renderResults() {
     let found_sigs = Object.keys(Results);
     let rows = new Map();
     let val_span = 0;
+    let platformFilter = new Set(
+        Array.from(document.querySelectorAll('#platforms input:checked'))
+        .map(function(checked) {
+            return checked.dataset.platform;
+        }));
     found_sigs.forEach(function(sig) {
         let test = signatures[sig];
+        if (!platformFilter.has(test.machine_platform)) {
+            // only show selected platforms
+            return;
+        }
         let name = test.test||test.suite;
         if (test.test_options) {
             name += ' (' + test.test_options[0] + ')';
