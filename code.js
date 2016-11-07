@@ -139,7 +139,7 @@ function renderResults() {
             }
             row.insertAdjacentHTML('beforeend', `<td>${platform}</td>`);
             row.insertAdjacentHTML('beforeend', `<td>${domain[0]}</td>`);
-            row.insertAdjacentHTML('beforeend', '<td><svg></svg></td>');
+            row.insertAdjacentHTML('beforeend', '<td class="graph"><svg></svg></td>');
             let y_scale = d3.scaleOrdinal(
                 revisions.map((rev, i) => i*10 + 5));
             y_scale.domain(tested_revisions);
@@ -156,7 +156,7 @@ function renderResults() {
                 .attr('cx', result => x_scale(result.value))
                 .attr('cy', result => y_scale(result.revision))
                 .attr('r', 5 - 1)
-                .style('fill', result => '#' + result.revision.slice(6))
+                .style('fill', result => '#' + result.revision.slice(6) + 'CC')
                     .append('title')
                     .text(result => Number(result.value).toFixed(1));
             row.insertAdjacentHTML('beforeend', `<td>${domain[1]}</td>`);
