@@ -74,9 +74,41 @@ function collectPlatforms() {
     renderResults();
 }
 
+
+function getAllValues() {
+  const results = [];
+  
+  let keys = Object.keys(Results);
+  let x = false;
+  for (const key of keys) {
+    let jobs = Results[key];
+    for (let job of jobs) {
+      if (x !== true) {
+        results.push(fetch(`https://treeherder.mozilla.org/api/project/try/jobs/${job.job_id}/?format=json`).then(data => {
+          return data.json();
+        }).then(jobData => {
+          return fetch(jobData.logs[0].url).then(data => data.text()).then(t => {
+            let val = t.match(/PERFHERDER_DATA: (.*)/)[1];
+
+            val = val.replace(/NaN/g, '"NaN"');
+
+            let res = JSON.parse(val);
+            return res;
+          });
+        }));
+        x = true;
+      }
+    }
+  }
+  return Promise.all(results);
+}
+
 function renderResults() {
     let body = document.querySelector("#container");
     body.innerHTML = '';
+    getAllValues().then(results => {
+      console.log(results);
+    });
     let found_sigs = Object.keys(Results);
     let rows = new Map();
     let val_span = 0;
