@@ -3,7 +3,7 @@ const Treeherder = 'https://treeherder.mozilla.org/api/project/';
 const HG='https://hg.mozilla.org/'
 const tree = 'try';
 
-let signatures, resultsets, Results = {}, revisions, res_ids_2_rev = {};
+let signatures, resultsets, Results = {}, revisions, res_ids_2_rev = {}, raw_values = {};
 
 function onLoad() {
     revisions = new URL(document.location).searchParams.getAll('revision');
@@ -79,25 +79,32 @@ function getAllValues() {
   const results = [];
   
   let keys = Object.keys(Results);
-  let x = false;
   for (const key of keys) {
     let jobs = Results[key];
     for (let job of jobs) {
-      if (x !== true) {
-        results.push(fetch(`https://treeherder.mozilla.org/api/project/try/jobs/${job.job_id}/?format=json`).then(data => {
-          return data.json();
-        }).then(jobData => {
-          return fetch(jobData.logs[0].url).then(data => data.text()).then(t => {
-            let val = t.match(/PERFHERDER_DATA: (.*)/)[1];
+      results.push(fetch(`https://treeherder.mozilla.org/api/project/try/jobs/${job.job_id}/?format=json`).then(data => {
+        return data.json();
+      }).then(jobData => {
+        return fetch(jobData.logs[0].url).then(data => data.text()).then(t => {
+          let val = t.match(/PERFHERDER_DATA: (.*)/)[1];
 
-            val = val.replace(/NaN/g, '"NaN"');
+          val = val.replace(/NaN/g, '"NaN"');
 
-            let res = JSON.parse(val);
-            return res;
-          });
-        }));
-        x = true;
-      }
+          let test_name = signatures[key].suite;
+          let res = JSON.parse(val);
+          for (let i in res.suites) {
+            if (res.suites[i].name === test_name) {
+              let reps = res.suites[i].subtests[0].replicates;
+              raw_values[job.job_id] = {
+                name: res.suites[i].name,
+                subtests: res.suites[i].subtests
+
+              };
+            }
+          }
+          return res;
+        });
+      }));
     }
   }
   return Promise.all(results);
@@ -107,7 +114,7 @@ function renderResults() {
     let body = document.querySelector("#container");
     body.innerHTML = '';
     getAllValues().then(results => {
-      console.log(results);
+      console.log(raw_values);
     });
     let found_sigs = Object.keys(Results);
     let rows = new Map();
