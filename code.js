@@ -53,7 +53,7 @@ function loadResults(responses) {
                 });
             }));
     }
-    Promise.all(loading).then(collectPlatforms);
+    Promise.all(loading).then(collectPlatforms).then(getAllValues);
 }
 
 function collectPlatforms() {
@@ -74,7 +74,6 @@ function collectPlatforms() {
     renderResults();
 }
 
-
 function getAllValues() {
   const results = [];
   
@@ -82,6 +81,11 @@ function getAllValues() {
   for (const key of keys) {
     let jobs = Results[key];
     for (let job of jobs) {
+      if (raw_values.hasOwnProperty(job.job_id)) {
+        continue;
+      } else {
+        raw_values[job.job_id] = null;
+      }
       results.push(fetch(`https://treeherder.mozilla.org/api/project/try/jobs/${job.job_id}/?format=json`).then(data => {
         return data.json();
       }).then(jobData => {
@@ -92,17 +96,10 @@ function getAllValues() {
 
           let test_name = signatures[key].suite;
           let res = JSON.parse(val);
-          for (let i in res.suites) {
-            if (res.suites[i].name === test_name) {
-              let reps = res.suites[i].subtests[0].replicates;
-              raw_values[job.job_id] = {
-                name: res.suites[i].name,
-                subtests: res.suites[i].subtests
-
-              };
-            }
+          raw_values[job.job_id] = {};
+          for (let suite of res.suites) {
+            raw_values[job.job_id][suite.name] = suite;
           }
-          return res;
         });
       }));
     }
@@ -113,9 +110,6 @@ function getAllValues() {
 function renderResults() {
     let body = document.querySelector("#container");
     body.innerHTML = '';
-    getAllValues().then(results => {
-      console.log(raw_values);
-    });
     let found_sigs = Object.keys(Results);
     let rows = new Map();
     let val_span = 0;
