@@ -137,7 +137,7 @@ function renderResults() {
             console.log('break me')
         }
         let revs = new Set();
-        let results = [];
+        let results = {};
         let avg = {};
         test_results.forEach(function(result) {
             let rev = res_ids_2_rev[result.result_set_id];
@@ -149,33 +149,29 @@ function renderResults() {
             if (subtest.replicates) {
                 values = subtest.replicates.map(Number).filter(n => !Number.isNaN(n));
                 values.shift(); // really skip first run
-                values.forEach(function(v) {
-                    results.push({revision: rev, value: v});
-                })
             }
             else {
-                results.push({
-                    revision: rev,
-                    value: subtest.value
-                });
+                values = [subtest.value];
             };
             if (!avg[rev]) {
                 avg[rev] = {
                     sum: subtest.value,
                     cnt: 1
                 }
+                results[rev] = values
             }
             else {
                 avg[rev].sum += subtest.value;
                 avg[rev].cnt++;
+                results[rev] = results[rev].concat(values);
             }
         });
-        let values = results.map(r => r.value);
+        let values = Object.keys(results).map(rev => results[rev]).reduce((a, b) => a.concat(b));
         let min = Math.min.apply(null, values);
         let max = Math.max.apply(null, values);
         val_span = Math.max(max - min, val_span);
         for (let rev in avg) {
-            results.push({revision: rev, value: avg[rev].sum/avg[rev].cnt, avg: true});
+            avg.value = avg[rev].sum/avg[rev].cnt;
         }
         console.log(name, test.machine_platform, val_span)
         revs = revisions.filter(rev => revs.has(rev));
@@ -183,6 +179,7 @@ function renderResults() {
             max: max,
             min: min,
             tested_revisions: revs,
+            averages: avg,
             results: results,
         });
     });
@@ -194,7 +191,7 @@ function renderResults() {
         let platforms = Array.from(platform_map);
         platforms.sort();
         platforms.forEach(function (t, i) {
-            let [platform, {max, min, tested_revisions, results}] = t;
+            let [platform, {max, min, tested_revisions, averages, results}] = t;
             let lower_bound = Math.max(Math.floor((max + min - val_span) / 2), 0);
             let domain = [lower_bound , lower_bound + val_span];
             let row = document.createElement('tr');
@@ -204,25 +201,49 @@ function renderResults() {
             row.insertAdjacentHTML('beforeend', `<td>${platform}</td>`);
             row.insertAdjacentHTML('beforeend', `<td>${domain[0]}</td>`);
             row.insertAdjacentHTML('beforeend', '<td class="graph"><svg></svg></td>');
-            let y_scale = d3.scaleOrdinal(
-                revisions.map((rev, i) => i*10 + 5));
-            y_scale.domain(tested_revisions);
+            let histograms = [], top = 0;
+            for (let rev in results) {
+                let histogram = d3.histogram()
+                    .domain([min, max])
+                    .thresholds(50)
+                    (results[rev]);
+                top = Math.max(top, Math.max.apply(null, histogram.map(h => h.length)));
+                histogram.rev = rev;
+                let bin = [];
+                bin.x0 = bin.x1 = domain[0];
+                histogram.unshift(bin);
+                bin = [];
+                bin.x0 = bin.x1 = domain[1];
+                histogram.push(bin);
+                histograms.push(histogram);
+            }
+            let y_scale = d3.scaleLinear();
+            y_scale.range([100, 0]);
+            y_scale.domain([0, top]);
             let x_scale = d3.scaleLinear();
             x_scale.range([5, 795]);
             x_scale.domain(domain);
             d3.select(row).select('svg')
                 .attr('width', 800)
-                .attr('height', tested_revisions.length * 10)
-                .selectAll('circle')
-                .data(results)
+                .attr('height', 100)
+                .selectAll('path')
+                .data(histograms)
                 .enter()
-                .append('circle')
-                .attr('cx', result => x_scale(result.value))
-                .attr('cy', result => y_scale(result.revision))
-                .attr('r', 5 - 1)
-                .style('fill', result => result.avg ? 'white' : ('#' + result.revision.slice(6) + 'CC'))
-                    .append('title')
-                    .text(result => Number(result.value).toFixed(1));
+                .append('path')
+                .attr('class', 'line')
+                .style('stroke', function(h) {
+                    return '#' + h.rev.slice(6); //+ 'CC'
+                })
+                .attr('d', d3.line()
+                   .curve(d3.curveMonotoneX)
+                   .x(function(bin) {
+                       console.log('x', bin);
+                       return x_scale((bin.x0 + bin.x1)/2);
+                       })
+                   .y(function(bin) {
+                       return y_scale(bin.length);
+                       })
+               );
             row.insertAdjacentHTML('beforeend', `<td>${domain[1]}</td>`);
             body.appendChild(row);
         });
