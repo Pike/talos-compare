@@ -3,7 +3,7 @@ const Treeherder = 'https://treeherder.mozilla.org/api/project/';
 const HG='https://hg.mozilla.org/'
 const tree = 'try';
 
-let signatures, resultsets, Results = {}, revisions, res_ids_2_rev = {};
+let signatures, resultsets, Results = {}, revisions, push_ids_2_rev = {};
 
 function onLoad() {
     revisions = new URL(document.location).searchParams.getAll('revision');
@@ -26,11 +26,11 @@ function onLoad() {
 
 function loadResults(responses) {
     [signatures, ...resultsets] = responses;
-    let resultset_ids = [];
+    let push_ids = [];
     resultsets.forEach(function(rs) {
         rs.results.forEach(function (r) {
-            resultset_ids.push(r.id);
-            res_ids_2_rev[r.id] = rs.meta.revision;
+            push_ids.push(r.id);
+            push_ids_2_rev[r.id] = rs.meta.revision;
         });
     });
     let sigs = Object.keys(signatures);
@@ -41,8 +41,8 @@ function loadResults(responses) {
         chunk.forEach(function(id) {
             results_url.searchParams.append('signatures', id);
         });
-        resultset_ids.forEach(function(id) {
-            results_url.searchParams.append('result_set_id', id);
+        push_ids.forEach(function(id) {
+            results_url.searchParams.append('push_id', id);
         });
         results_url.searchParams.set('framework', 1);
         loading.push(fetch(results_url)
@@ -107,7 +107,7 @@ function renderResults() {
         val_span = Math.max(max - min, val_span);
         let revs = new Set();
         let results = test_results.map(function(result) {
-            let rev = res_ids_2_rev[result.result_set_id];
+            let rev = push_ids_2_rev[result.push_id];
             revs.add(rev);
             return {
                 revision: rev,
