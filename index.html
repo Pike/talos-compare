@@ -10,6 +10,10 @@ td {
 table {
   border-collapse: collapse;
 }
+.positioner a {
+    float: right;
+    margin-right: 5px;
+}
 .color {
     min-width: 4ex;
 }
@@ -22,6 +26,7 @@ table {
     <body>
         <h1>Comparing Talos for </h1>
         <table style="float:right;"><tbody id='platforms'></tbody></table>
+        <table style="float:right;"><tbody id='disabled-tests'></tbody></table>
         <table><tbody id='revs'></tbody></table>
         <table style="clear: both;"><tbody id='container'></tbody></table>
         <script src="https://d3js.org/d3.v4.min.js"></script>

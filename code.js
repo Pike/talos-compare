@@ -90,6 +90,11 @@ function renderResults() {
             document.querySelectorAll('#revs input:checked'),
             input => input.name)
     );
+    let disabledTestFilter = new Set(
+        Array.from(
+            document.querySelectorAll('#disabled-tests input'),
+            input => input.value)
+    );
     found_sigs.forEach(function(sig) {
         let test = signatures[sig];
         if (!platformFilter.has(test.machine_platform)) {
@@ -99,6 +104,9 @@ function renderResults() {
         let name = test.test||test.suite;
         if (test.test_options) {
             name += ' (' + test.test_options[0] + ')';
+        }
+        if (disabledTestFilter.has(name)) {
+            return;
         }
         if (!rows.has(name)) {
             rows.set(name, new Map());
@@ -140,7 +148,27 @@ function renderResults() {
             let domain = [lower_bound , lower_bound + val_span];
             let row = document.createElement('tr');
             if (i === 0) {
-                row.innerHTML = `<td rowspan="${platforms.length}">${label}</td>`;
+                row.innerHTML =
+                    `<td rowspan="${platforms.length}">
+                        <div class="positioner">
+                            <a href='#'>X</a>
+                            <div>${label}</div>
+                        </div>
+                    </td>`;
+                row.querySelector('a').onclick = function (e) {
+                    let container = document.getElementById('disabled-tests');
+                    container.insertAdjacentHTML(
+                        'beforeend',
+                        `<tr><td><input type="button" value="${label}"></td></tr>`
+                    );
+                    let tr = container.lastElementChild;
+                    tr.querySelector('input').onclick = function () {
+                        tr.remove();
+                        renderResults();
+                    };
+                    renderResults();
+                    return false;
+                };
             }
             row.insertAdjacentHTML('beforeend', `<td>${platform}</td>`);
             row.insertAdjacentHTML('beforeend', `<td>${domain[0]}</td>`);
