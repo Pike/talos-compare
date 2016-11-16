@@ -81,10 +81,15 @@ function renderResults() {
     let rows = new Map();
     let val_span = 0;
     let platformFilter = new Set(
-        Array.from(document.querySelectorAll('#platforms input:checked'))
-        .map(function(checked) {
-            return checked.dataset.platform;
-        }));
+        Array.from(
+            document.querySelectorAll('#platforms input:checked'),
+            input => input.dataset.platform)
+        );
+    let revisionFilter = new Set(
+        Array.from(
+            document.querySelectorAll('#revs input:checked'),
+            input => input.name)
+    );
     found_sigs.forEach(function(sig) {
         let test = signatures[sig];
         if (!platformFilter.has(test.machine_platform)) {
@@ -114,7 +119,7 @@ function renderResults() {
                 value: result.value,
             };
         });
-        revs = revisions.filter(rev => revs.has(rev));
+        revs = revisions.filter(rev => revs.has(rev) && revisionFilter.has(rev));
         row.set(test.machine_platform, {
             max: max,
             min: min,
@@ -170,7 +175,9 @@ function showRevisions() {
     revisions.forEach(function(rev) {
         let row = document.createElement('tr');
         row.insertAdjacentHTML('beforeend', `<td><a href="${HG}${tree}/rev/${rev}">${rev}</a></td>`);
+        row.insertAdjacentHTML('beforeend', `<td><input type="checkbox" checked name="${rev}"></td>`);
         row.insertAdjacentHTML('beforeend', `<td class="color" style="background-color:#${rev.slice(6)};"></td>`);
+        row.querySelector('input').onchange = renderResults;
         container.appendChild(row);
         getRevisionDesc(rev, row);
     });
