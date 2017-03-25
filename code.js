@@ -102,8 +102,8 @@ function renderResults() {
             return;
         }
         let name = test.test||test.suite;
-        if (test.test_options) {
-            name += ' (' + test.test_options[0] + ')';
+        if (test.extra_options) {
+            name += ' (' + test.extra_options[0] + ')';
         }
         if (disabledTestFilter.has(name)) {
             return;
