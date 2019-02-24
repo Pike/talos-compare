@@ -16,7 +16,7 @@ function onLoad() {
     loading.push(fetch(signatures_url)
         .then(response => response.json()));
     revisions.forEach(function(revision) {
-        let result_set_url = new URL(Treeherder + tree + '/resultset/');
+        let result_set_url = new URL(Treeherder + tree + '/push/');
         result_set_url.searchParams.set('revision', revision);
         loading.push(fetch(result_set_url)
             .then(response => response.json()));
